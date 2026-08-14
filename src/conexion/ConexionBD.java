@@ -9,7 +9,7 @@ public final class ConexionBD {
     private static final String SERVIDOR =
             System.getenv().getOrDefault(
                     "SQLSERVER_HOST",
-                    "localhost:1434");
+                    "localhost:1433");
 
     private static final String BASE_DATOS =
             System.getenv().getOrDefault(
