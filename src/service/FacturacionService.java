@@ -41,13 +41,27 @@ public class FacturacionService {
                 return RESPUESTA_ERROR;
             }
 
+            System.out.println(
+                    "Calculando facturacion: "
+                            + fechaCalculo
+                            + " -> "
+                            + fechaMaximaPago);
+
             facturacionDAO.calcularFacturacionPostpago(
                     fechaCalculo,
                     fechaMaximaPago);
 
+            System.out.println(
+                    "Facturacion ejecutada correctamente.");
+
             return RESPUESTA_OK;
 
         } catch (SQLException e) {
+
+            System.out.println(
+                    "ERROR SQL EN FACTURACION:");
+
+            e.printStackTrace();
 
             return RESPUESTA_ERROR;
         }
@@ -70,6 +84,11 @@ public class FacturacionService {
 
         } catch (SQLException e) {
 
+            System.out.println(
+                    "ERROR SQL LISTANDO FACTURAS:");
+
+            e.printStackTrace();
+
             return Collections.emptyList();
         }
     }
@@ -86,6 +105,11 @@ public class FacturacionService {
                     id);
 
         } catch (SQLException e) {
+
+            System.out.println(
+                    "ERROR SQL BUSCANDO FACTURA:");
+
+            e.printStackTrace();
 
             return null;
         }
@@ -126,6 +150,11 @@ public class FacturacionService {
             return RESPUESTA_OK;
 
         } catch (SQLException e) {
+
+            System.out.println(
+                    "ERROR SQL ACTUALIZANDO PAGO:");
+
+            e.printStackTrace();
 
             return RESPUESTA_ERROR;
         }
