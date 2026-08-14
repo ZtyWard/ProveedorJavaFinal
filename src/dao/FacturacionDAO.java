@@ -97,6 +97,12 @@ public class FacturacionDAO {
     private static final String SQL_CALCULAR_FACTURACION =
             "{call sp_calcular_facturacion_postpago(?, ?)}";
 
+    private static final String SQL_ULTIMA_FECHA_FACTURACION =
+            """
+            SELECT MAX(fecha_calculo)
+            FROM facturas
+            """;
+
     // ==========================================================
     // BUSCAR FACTURA
     // ==========================================================
@@ -213,6 +219,32 @@ public class FacturacionDAO {
             setFecha(cs, 2, fechaMaximaPago);
 
             cs.execute();
+        }
+    }
+
+    // ==========================================================
+    // OBTENER ULTIMA FECHA DE FACTURACION
+    // ==========================================================
+
+    public java.time.LocalDate obtenerUltimaFechaFacturacion()
+            throws SQLException {
+
+        try (Connection conexion = ConexionBD.obtenerConexion();
+             PreparedStatement ps =
+                     conexion.prepareStatement(SQL_ULTIMA_FECHA_FACTURACION);
+             ResultSet rs = ps.executeQuery()) {
+
+            if (!rs.next()) {
+                return null;
+            }
+
+            Date fecha = rs.getDate(1);
+
+            if (fecha == null) {
+                return null;
+            }
+
+            return fecha.toLocalDate();
         }
     }
 

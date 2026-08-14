@@ -336,6 +336,35 @@ public class SocketServer {
             String[] partes =
                     trama.split("\\|", -1);
 
+            // --------------------------------------------------
+            // CONSULTAR ULTIMA FECHA DE FACTURACION
+            //
+            // Formato:
+            // PROVEEDOR6|ULTIMA_FECHA
+            // --------------------------------------------------
+
+            if (partes.length == 2
+                    && "ULTIMA_FECHA".equalsIgnoreCase(
+                            partes[1].trim())) {
+
+                LocalDate ultimaFecha =
+                        facturacionService
+                                .obtenerUltimaFechaFacturacion();
+
+                if (ultimaFecha == null) {
+                    return "SIN_FACTURACION";
+                }
+
+                return ultimaFecha.toString();
+            }
+
+            // --------------------------------------------------
+            // CALCULAR FACTURACION
+            //
+            // Formato:
+            // PROVEEDOR6|2026-07-08|2026-07-18
+            // --------------------------------------------------
+
             if (partes.length != 3) {
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
@@ -348,10 +377,11 @@ public class SocketServer {
                     LocalDate.parse(
                             partes[2].trim());
 
-            return facturacionService.calcularFacturacionPostpago(
-                    fechaCalculo,
-                    fechaMaximaPago
-            );
+            return facturacionService
+                    .calcularFacturacionPostpago(
+                            fechaCalculo,
+                            fechaMaximaPago
+                    );
 
         } catch (Exception e) {
 
@@ -408,6 +438,13 @@ public class SocketServer {
         }
 
         if (trama.startsWith("PROVEEDOR6|")) {
+
+            if (trama.toUpperCase(Locale.ROOT)
+                    .contains("ULTIMA_FECHA")) {
+
+                return "proveedor6_ultima_fecha_facturacion";
+            }
+
             return "proveedor6_calcular_facturacion";
         }
 

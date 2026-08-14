@@ -68,10 +68,33 @@ public class FacturacionService {
     }
 
     // ==========================================================
+    // OBTENER ULTIMA FECHA DE FACTURACION
+    // ==========================================================
+
+    public LocalDate obtenerUltimaFechaFacturacion() {
+
+        try {
+
+            return facturacionDAO
+                    .obtenerUltimaFechaFacturacion();
+
+        } catch (SQLException e) {
+
+            System.out.println(
+                    "ERROR SQL OBTENIENDO ULTIMA FACTURACION:");
+
+            e.printStackTrace();
+
+            return null;
+        }
+    }
+
+    // ==========================================================
     // CONSULTAR FACTURAS
     // ==========================================================
 
-    public List<Factura> listarFacturasPorTelefono(String telefono) {
+    public List<Factura> listarFacturasPorTelefono(
+            String telefono) {
 
         try {
 
