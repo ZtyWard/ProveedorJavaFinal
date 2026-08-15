@@ -41,7 +41,7 @@ public class SocketServer {
     }
 
     // ==========================================================
-    // INICIO DEL SERVIDOR
+    // INICIO
     // ==========================================================
 
     public void iniciarServidor() {
@@ -52,8 +52,7 @@ public class SocketServer {
         try (ServerSocket servidor =
                      new ServerSocket(puerto)) {
 
-            mostrarInicio(
-                    puerto);
+            mostrarInicio(puerto);
 
             while (true) {
 
@@ -71,7 +70,7 @@ public class SocketServer {
     }
 
     // ==========================================================
-    // ATENCION DE CLIENTES
+    // ATENDER CLIENTE
     // ==========================================================
 
     private void atenderCliente(
@@ -99,16 +98,14 @@ public class SocketServer {
                             + trama);
 
             String respuesta =
-                    procesarTrama(
-                            trama);
+                    procesarTrama(trama);
 
             logger.log(
                     obtenerTipoLog(trama),
                     trama,
                     respuesta);
 
-            salida.println(
-                    respuesta);
+            salida.println(respuesta);
 
         } catch (Exception e) {
 
@@ -125,7 +122,7 @@ public class SocketServer {
     }
 
     // ==========================================================
-    // ENRUTAMIENTO DE TRAMAS
+    // ENRUTAMIENTO
     // ==========================================================
 
     private String procesarTrama(
@@ -137,27 +134,53 @@ public class SocketServer {
             return Constantes.RESPUESTA_TRAMA_INVALIDA;
         }
 
+
         if ("PING".equalsIgnoreCase(
                 trama)) {
 
             return Constantes.RESPUESTA_OK;
         }
 
-        /*
-         * CLIENTE5 - RECARGAR SALDO
-         *
-         * Formato:
-         *
-         * RECARGA|telefono|monto
-         */
+
+        // ------------------------------------------------------
+        // CLIENTE5
+        // ------------------------------------------------------
 
         if (trama.startsWith(
                 Constantes.TIPO_TRANSACCION_RECARGA
                         + "|")) {
 
-            return procesarRecarga(
+            return procesarRecarga(trama);
+        }
+
+
+        // ------------------------------------------------------
+        // CLIENTE6
+        // ------------------------------------------------------
+
+        if (trama.startsWith(
+                "PAGAR_FACTURA|")) {
+
+            return procesarPagarFactura(
                     trama);
         }
+
+
+        // ------------------------------------------------------
+        // CLIENTE7
+        // ------------------------------------------------------
+
+        if (trama.startsWith(
+                "CLIENTE7|")) {
+
+            return procesarCliente7(
+                    trama);
+        }
+
+
+        // ------------------------------------------------------
+        // ADM3
+        // ------------------------------------------------------
 
         if (trama.startsWith(
                 "PROVEEDOR4|")) {
@@ -166,12 +189,25 @@ public class SocketServer {
                     trama);
         }
 
+
+        // ------------------------------------------------------
+        // ADM4 / CLIENTE7
+        //
+        // Se mantiene el protocolo anterior para no romper
+        // las operaciones que ya funcionan.
+        // ------------------------------------------------------
+
         if (trama.startsWith(
                 "PROVEEDOR5|")) {
 
             return procesarProveedor5(
                     trama);
         }
+
+
+        // ------------------------------------------------------
+        // ADM6
+        // ------------------------------------------------------
 
         if (trama.startsWith(
                 "PROVEEDOR6|")) {
@@ -180,11 +216,17 @@ public class SocketServer {
                     trama);
         }
 
+
+        // ------------------------------------------------------
+        // TRAMAS TELEFÓNICAS
+        // ------------------------------------------------------
+
         if (!TramaParser.tramaBaseValida(
                 trama)) {
 
             return Constantes.RESPUESTA_TRAMA_INVALIDA;
         }
+
 
         if (TramaParser.esAutorizacionLlamada(
                 trama)) {
@@ -193,6 +235,7 @@ public class SocketServer {
                     trama);
         }
 
+
         if (TramaParser.esConsultaSaldo(
                 trama)) {
 
@@ -200,6 +243,7 @@ public class SocketServer {
                     TramaParser.obtenerTelefono(
                             trama));
         }
+
 
         if (TramaParser.esRegistroMovimiento(
                 trama)) {
@@ -211,8 +255,186 @@ public class SocketServer {
                             trama));
         }
 
+
         return Constantes.RESPUESTA_TRAMA_INVALIDA;
     }
+
+
+    // ==========================================================
+    // CLIENTE7 - DEVOLVER LINEA
+    // ==========================================================
+
+    private String procesarCliente7(
+            String trama) {
+
+        try {
+
+            /*
+             * Formato:
+             *
+             * CLIENTE7|DEVOLVER|88881234
+             */
+
+            String[] partes =
+                    trama.split(
+                            "\\|",
+                            -1);
+
+
+            if (partes.length != 3) {
+
+                return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
+            }
+
+
+            String operacion =
+                    partes[1]
+                            .trim()
+                            .toUpperCase(
+                                    Locale.ROOT);
+
+
+            String telefono =
+                    partes[2].trim();
+
+
+            if (!"DEVOLVER".equals(
+                    operacion)) {
+
+                return Constantes.RESPUESTA_TRAMA_INVALIDA;
+            }
+
+
+            if (valorVacio(telefono)) {
+
+                return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
+            }
+
+
+            System.out.println(
+                    "CLIENTE7 - Devolviendo línea: "
+                            + telefono);
+
+
+            /*
+             * Aquí está la parte importante:
+             *
+             * NO recibimos:
+             *
+             * - identificador del teléfono
+             * - identificador de tarjeta
+             * - identificación del cliente
+             *
+             * ActivacionService los obtiene directamente
+             * desde la BD usando el teléfono.
+             */
+
+            String respuesta =
+                    activacionService
+                            .desactivarLineaPorTelefono(
+                                    telefono);
+
+
+            System.out.println(
+                    "CLIENTE7 - Respuesta devolución: "
+                            + respuesta);
+
+
+            return respuesta;
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Error procesando CLIENTE7:");
+
+            e.printStackTrace();
+
+            return Constantes.RESPUESTA_ERROR;
+        }
+    }
+
+
+    // ==========================================================
+    // CLIENTE6 - PAGAR FACTURA
+    // ==========================================================
+
+    private String procesarPagarFactura(
+            String trama) {
+
+        try {
+
+            String[] partes =
+                    trama.split(
+                            "\\|",
+                            -1);
+
+
+            /*
+             * Formato:
+             *
+             * PAGAR_FACTURA|1
+             */
+
+            if (partes.length != 2) {
+
+                return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
+            }
+
+
+            String idTexto =
+                    partes[1].trim();
+
+
+            if (valorVacio(idTexto)) {
+
+                return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
+            }
+
+
+            int facturaId =
+                    Integer.parseInt(
+                            idTexto);
+
+
+            if (facturaId <= 0) {
+
+                return Constantes.RESPUESTA_ERROR;
+            }
+
+
+            System.out.println(
+                    "CLIENTE6 - Pagando factura ID: "
+                            + facturaId);
+
+
+            String respuesta =
+                    facturacionService
+                            .marcarFacturaPagada(
+                                    facturaId);
+
+
+            System.out.println(
+                    "CLIENTE6 - Respuesta pago: "
+                            + respuesta);
+
+
+            return respuesta;
+
+        } catch (NumberFormatException e) {
+
+            return Constantes.RESPUESTA_ERROR;
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Error procesando PAGAR_FACTURA:");
+
+            e.printStackTrace();
+
+            return Constantes.RESPUESTA_ERROR;
+        }
+    }
+
 
     // ==========================================================
     // CLIENTE5 - RECARGAR SALDO
@@ -228,22 +450,20 @@ public class SocketServer {
                             "\\|",
                             -1);
 
-            /*
-             * Formato:
-             *
-             * RECARGA|88881234|5000
-             */
 
             if (partes.length != 3) {
 
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
 
+
             String telefono =
                     partes[1].trim();
 
+
             String montoTexto =
                     partes[2].trim();
+
 
             if (valorVacio(telefono)
                     || valorVacio(montoTexto)) {
@@ -251,15 +471,18 @@ public class SocketServer {
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
 
+
             double monto =
                     Double.parseDouble(
                             montoTexto);
+
 
             if (monto <= 0
                     || monto != Math.floor(monto)) {
 
                 return Constantes.RESPUESTA_ERROR;
             }
+
 
             return proveedorService.recargarSaldo(
                     telefono,
@@ -280,8 +503,9 @@ public class SocketServer {
         }
     }
 
+
     // ==========================================================
-    // PROVEEDOR4 - REGISTRAR LINEA DISPONIBLE
+    // PROVEEDOR4
     // ==========================================================
 
     private String procesarProveedor4(
@@ -294,22 +518,27 @@ public class SocketServer {
                             "\\|",
                             -1);
 
+
             if (partes.length != 6) {
 
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
 
+
             String telefono =
                     CifradoWSProveedor.descifrar(
                             partes[1]).trim();
+
 
             String identificadorTelefono =
                     CifradoWSProveedor.descifrar(
                             partes[2]).trim();
 
+
             String identificadorTarjeta =
                     CifradoWSProveedor.descifrar(
                             partes[3]).trim();
+
 
             String tipoServicio =
                     partes[4]
@@ -317,31 +546,34 @@ public class SocketServer {
                             .toUpperCase(
                                     Locale.ROOT);
 
+
             String estado =
                     partes[5]
                             .trim()
                             .toUpperCase(
                                     Locale.ROOT);
 
+
             if (valorVacio(telefono)
                     || valorVacio(
-                            identificadorTelefono)
+                    identificadorTelefono)
                     || valorVacio(
-                            identificadorTarjeta)
+                    identificadorTarjeta)
                     || valorVacio(
-                            tipoServicio)
+                    tipoServicio)
                     || !Constantes.ESTADO_DISPONIBLE
-                            .equals(estado)) {
+                    .equals(estado)) {
 
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
 
-            return activacionService.registrarLineaDisponible(
-                    telefono,
-                    identificadorTelefono,
-                    identificadorTarjeta,
-                    tipoServicio
-            );
+
+            return activacionService
+                    .registrarLineaDisponible(
+                            telefono,
+                            identificadorTelefono,
+                            identificadorTarjeta,
+                            tipoServicio);
 
         } catch (Exception e) {
 
@@ -354,8 +586,9 @@ public class SocketServer {
         }
     }
 
+
     // ==========================================================
-    // PROVEEDOR5 - ACTIVAR / DESACTIVAR LINEA
+    // PROVEEDOR5
     // ==========================================================
 
     private String procesarProveedor5(
@@ -368,22 +601,27 @@ public class SocketServer {
                             "\\|",
                             -1);
 
+
             if (partes.length != 7) {
 
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
 
+
             String telefono =
                     CifradoWSProveedor.descifrar(
                             partes[1]).trim();
+
 
             String identificadorTelefono =
                     CifradoWSProveedor.descifrar(
                             partes[2]).trim();
 
+
             String identificadorTarjeta =
                     CifradoWSProveedor.descifrar(
                             partes[3]).trim();
+
 
             String tipoServicio =
                     partes[4]
@@ -391,8 +629,10 @@ public class SocketServer {
                             .toUpperCase(
                                     Locale.ROOT);
 
+
             String identificacionCliente =
                     partes[5].trim();
+
 
             String estado =
                     partes[6]
@@ -400,49 +640,51 @@ public class SocketServer {
                             .toUpperCase(
                                     Locale.ROOT);
 
+
             if (valorVacio(telefono)
                     || valorVacio(
-                            identificadorTelefono)
+                    identificadorTelefono)
                     || valorVacio(
-                            identificadorTarjeta)
+                    identificadorTarjeta)
                     || valorVacio(tipoServicio)
                     || valorVacio(
-                            identificacionCliente)
+                    identificacionCliente)
                     || valorVacio(estado)) {
 
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
 
+
             if (Constantes.ESTADO_ACTIVO.equals(
                     estado)
                     || "ACTIVAR".equals(
-                            estado)) {
+                    estado)) {
 
                 return activacionService.activarLinea(
                         telefono,
                         identificadorTelefono,
                         identificadorTarjeta,
                         tipoServicio,
-                        identificacionCliente
-                );
+                        identificacionCliente);
             }
+
 
             if (Constantes.ESTADO_INACTIVO.equals(
                     estado)
                     || "DESACTIVADO".equals(
-                            estado)
+                    estado)
                     || "DESACTIVAR".equals(
-                            estado)
+                    estado)
                     || Constantes.ESTADO_DISPONIBLE.equals(
-                            estado)) {
+                    estado)) {
 
                 return activacionService.desactivarLinea(
                         telefono,
                         identificadorTelefono,
                         identificadorTarjeta,
-                        identificacionCliente
-                );
+                        identificacionCliente);
             }
+
 
             return Constantes.RESPUESTA_ERROR;
 
@@ -457,8 +699,9 @@ public class SocketServer {
         }
     }
 
+
     // ==========================================================
-    // PROVEEDOR6 - CALCULAR FACTURACION
+    // PROVEEDOR6
     // ==========================================================
 
     private String procesarProveedor6(
@@ -471,9 +714,6 @@ public class SocketServer {
                             "\\|",
                             -1);
 
-            // --------------------------------------------------
-            // CONSULTAR ULTIMA FECHA
-            // --------------------------------------------------
 
             if (partes.length == 2
                     && "ULTIMA_FECHA"
@@ -484,36 +724,37 @@ public class SocketServer {
                         facturacionService
                                 .obtenerUltimaFechaFacturacion();
 
+
                 if (ultimaFecha == null) {
 
                     return "SIN_FACTURACION";
                 }
 
+
                 return ultimaFecha.toString();
             }
 
-            // --------------------------------------------------
-            // CALCULAR FACTURACION
-            // --------------------------------------------------
 
             if (partes.length != 3) {
 
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
 
+
             LocalDate fechaCalculo =
                     LocalDate.parse(
                             partes[1].trim());
+
 
             LocalDate fechaMaximaPago =
                     LocalDate.parse(
                             partes[2].trim());
 
+
             return facturacionService
                     .calcularFacturacionPostpago(
                             fechaCalculo,
-                            fechaMaximaPago
-                    );
+                            fechaMaximaPago);
 
         } catch (Exception e) {
 
@@ -526,8 +767,9 @@ public class SocketServer {
         }
     }
 
+
     // ==========================================================
-    // AUTORIZACION DE LLAMADA
+    // AUTORIZACIÓN
     // ==========================================================
 
     private String procesarAutorizacionLlamada(
@@ -537,10 +779,12 @@ public class SocketServer {
                 TramaParser.obtenerTipoLlamada(
                         trama);
 
+
         if (tipoLlamada <= 0) {
 
             return Constantes.RESPUESTA_TRAMA_INVALIDA;
         }
+
 
         return proveedorService.autorizarLlamada(
                 TramaParser.obtenerTelefono(
@@ -548,8 +792,9 @@ public class SocketServer {
                 tipoLlamada);
     }
 
+
     // ==========================================================
-    // BITACORA
+    // LOG
     // ==========================================================
 
     private String obtenerTipoLog(
@@ -561,11 +806,13 @@ public class SocketServer {
             return "trama_vacia";
         }
 
+
         if ("PING".equalsIgnoreCase(
                 trama)) {
 
             return "prueba_conexion";
         }
+
 
         if (trama.startsWith(
                 Constantes.TIPO_TRANSACCION_RECARGA
@@ -574,17 +821,34 @@ public class SocketServer {
             return "recarga_saldo";
         }
 
+
+        if (trama.startsWith(
+                "PAGAR_FACTURA|")) {
+
+            return "cliente6_pagar_factura";
+        }
+
+
+        if (trama.startsWith(
+                "CLIENTE7|")) {
+
+            return "cliente7_devolver_linea";
+        }
+
+
         if (trama.startsWith(
                 "PROVEEDOR4|")) {
 
             return "proveedor4_ingresar_linea";
         }
 
+
         if (trama.startsWith(
                 "PROVEEDOR5|")) {
 
             return "proveedor5_activar_desactivar_linea";
         }
+
 
         if (trama.startsWith(
                 "PROVEEDOR6|")) {
@@ -597,8 +861,10 @@ public class SocketServer {
                 return "proveedor6_ultima_fecha_facturacion";
             }
 
+
             return "proveedor6_calcular_facturacion";
         }
+
 
         if (!TramaParser.tramaBaseValida(
                 trama)) {
@@ -606,11 +872,13 @@ public class SocketServer {
             return "trama_invalida";
         }
 
+
         if (TramaParser.esAutorizacionLlamada(
                 trama)) {
 
             return "autorizacion_llamada";
         }
+
 
         if (TramaParser.esConsultaSaldo(
                 trama)) {
@@ -618,14 +886,17 @@ public class SocketServer {
             return "consulta_saldo";
         }
 
+
         if (TramaParser.esRegistroMovimiento(
                 trama)) {
 
             return "registro_movimiento";
         }
 
+
         return TIPO_LOG_TRANSACCION;
     }
+
 
     // ==========================================================
     // UTILIDADES
@@ -638,9 +909,6 @@ public class SocketServer {
                 || valor.trim().isEmpty();
     }
 
-    // ==========================================================
-    // CONFIGURACION
-    // ==========================================================
 
     private int obtenerPuerto() {
 
@@ -658,6 +926,7 @@ public class SocketServer {
             return Constantes.PUERTO_PROVEEDOR_DEFAULT;
         }
     }
+
 
     private void mostrarInicio(
             int puerto) {

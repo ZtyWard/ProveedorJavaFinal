@@ -30,3 +30,12 @@
 {"fecha":"14/08/2026 19:49:33","tipo":"recarga_saldo","trama":"RECARGA|88881234|5000","respuesta":"ERROR"}
 {"fecha":"14/08/2026 19:59:44","tipo":"recarga_saldo","trama":"RECARGA|88881234|5000","respuesta":"OK"}
 {"fecha":"14/08/2026 19:59:53","tipo":"recarga_saldo","trama":"RECARGA|88881234|10000","respuesta":"OK"}
+{"fecha":"14/08/2026 20:52:36","tipo":"proveedor6_ultima_fecha_facturacion","trama":"PROVEEDOR6|ULTIMA_FECHA","respuesta":"2026-07-09"}
+{"fecha":"14/08/2026 20:55:05","tipo":"cliente6_pagar_factura","trama":"PAGAR_FACTURA|1","respuesta":"OK"}
+{"fecha":"14/08/2026 21:58:49","tipo":"proveedor6_ultima_fecha_facturacion","trama":"PROVEEDOR6|ULTIMA_FECHA","respuesta":"2026-07-09"}
+{"fecha":"14/08/2026 21:59:44","tipo":"cliente7_devolver_linea","trama":"CLIENTE7|DEVOLVER|88881234","respuesta":"Telefono no corresponde"}
+{"fecha":"14/08/2026 22:05:05","tipo":"cliente7_devolver_linea","trama":"CLIENTE7|DEVOLVER|88881234","respuesta":"Activación fallida"}
+{"fecha":"14/08/2026 22:05:09","tipo":"cliente7_devolver_linea","trama":"CLIENTE7|DEVOLVER|88881234","respuesta":"Activación fallida"}
+{"fecha":"14/08/2026 22:06:17","tipo":"proveedor6_ultima_fecha_facturacion","trama":"PROVEEDOR6|ULTIMA_FECHA","respuesta":"2026-07-09"}
+{"fecha":"14/08/2026 22:06:43","tipo":"cliente7_devolver_linea","trama":"CLIENTE7|DEVOLVER|88881234","respuesta":"Activación fallida"}
+{"fecha":"14/08/2026 22:25:26","tipo":"cliente6_pagar_factura","trama":"PAGAR_FACTURA|1","respuesta":"OK"}
