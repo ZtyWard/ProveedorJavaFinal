@@ -74,17 +74,22 @@ public class SocketServer {
     // ATENCION DE CLIENTES
     // ==========================================================
 
-    private void atenderCliente(Socket cliente) {
+    private void atenderCliente(
+            Socket cliente) {
 
-        try (Socket socket = cliente;
-             BufferedReader entrada =
-                     new BufferedReader(
-                             new InputStreamReader(
-                                     socket.getInputStream()));
-             PrintWriter salida =
-                     new PrintWriter(
-                             socket.getOutputStream(),
-                             true)) {
+        try (
+                Socket socket = cliente;
+
+                BufferedReader entrada =
+                        new BufferedReader(
+                                new InputStreamReader(
+                                        socket.getInputStream()));
+
+                PrintWriter salida =
+                        new PrintWriter(
+                                socket.getOutputStream(),
+                                true)
+        ) {
 
             String trama =
                     entrada.readLine();
@@ -123,7 +128,8 @@ public class SocketServer {
     // ENRUTAMIENTO DE TRAMAS
     // ==========================================================
 
-    private String procesarTrama(String trama) {
+    private String procesarTrama(
+            String trama) {
 
         if (trama == null
                 || trama.trim().isEmpty()) {
@@ -131,60 +137,165 @@ public class SocketServer {
             return Constantes.RESPUESTA_TRAMA_INVALIDA;
         }
 
-        if ("PING".equalsIgnoreCase(trama)) {
+        if ("PING".equalsIgnoreCase(
+                trama)) {
+
             return Constantes.RESPUESTA_OK;
         }
 
-        if (trama.startsWith("PROVEEDOR4|")) {
+        /*
+         * CLIENTE5 - RECARGAR SALDO
+         *
+         * Formato:
+         *
+         * RECARGA|telefono|monto
+         */
+
+        if (trama.startsWith(
+                Constantes.TIPO_TRANSACCION_RECARGA
+                        + "|")) {
+
+            return procesarRecarga(
+                    trama);
+        }
+
+        if (trama.startsWith(
+                "PROVEEDOR4|")) {
+
             return procesarProveedor4(
                     trama);
         }
 
-        if (trama.startsWith("PROVEEDOR5|")) {
+        if (trama.startsWith(
+                "PROVEEDOR5|")) {
+
             return procesarProveedor5(
                     trama);
         }
 
-        if (trama.startsWith("PROVEEDOR6|")) {
+        if (trama.startsWith(
+                "PROVEEDOR6|")) {
+
             return procesarProveedor6(
                     trama);
         }
 
-        if (!TramaParser.tramaBaseValida(trama)) {
+        if (!TramaParser.tramaBaseValida(
+                trama)) {
+
             return Constantes.RESPUESTA_TRAMA_INVALIDA;
         }
 
-        if (TramaParser.esAutorizacionLlamada(trama)) {
+        if (TramaParser.esAutorizacionLlamada(
+                trama)) {
+
             return procesarAutorizacionLlamada(
                     trama);
         }
 
-        if (TramaParser.esConsultaSaldo(trama)) {
+        if (TramaParser.esConsultaSaldo(
+                trama)) {
+
             return proveedorService.consultarSaldo(
-                    TramaParser.obtenerTelefono(trama));
+                    TramaParser.obtenerTelefono(
+                            trama));
         }
 
-        if (TramaParser.esRegistroMovimiento(trama)) {
+        if (TramaParser.esRegistroMovimiento(
+                trama)) {
+
             return proveedorService.registrarMovimiento(
-                    TramaParser.obtenerTelefono(trama),
-                    TramaParser.obtenerDetalle(trama));
+                    TramaParser.obtenerTelefono(
+                            trama),
+                    TramaParser.obtenerDetalle(
+                            trama));
         }
 
         return Constantes.RESPUESTA_TRAMA_INVALIDA;
     }
 
     // ==========================================================
-    // PROVEEDOR4 - REGISTRAR LINEA DISPONIBLE
+    // CLIENTE5 - RECARGAR SALDO
     // ==========================================================
 
-    private String procesarProveedor4(String trama) {
+    private String procesarRecarga(
+            String trama) {
 
         try {
 
             String[] partes =
-                    trama.split("\\|", -1);
+                    trama.split(
+                            "\\|",
+                            -1);
+
+            /*
+             * Formato:
+             *
+             * RECARGA|88881234|5000
+             */
+
+            if (partes.length != 3) {
+
+                return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
+            }
+
+            String telefono =
+                    partes[1].trim();
+
+            String montoTexto =
+                    partes[2].trim();
+
+            if (valorVacio(telefono)
+                    || valorVacio(montoTexto)) {
+
+                return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
+            }
+
+            double monto =
+                    Double.parseDouble(
+                            montoTexto);
+
+            if (monto <= 0
+                    || monto != Math.floor(monto)) {
+
+                return Constantes.RESPUESTA_ERROR;
+            }
+
+            return proveedorService.recargarSaldo(
+                    telefono,
+                    monto);
+
+        } catch (NumberFormatException e) {
+
+            return Constantes.RESPUESTA_ERROR;
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Error procesando RECARGA:");
+
+            e.printStackTrace();
+
+            return Constantes.RESPUESTA_ERROR;
+        }
+    }
+
+    // ==========================================================
+    // PROVEEDOR4 - REGISTRAR LINEA DISPONIBLE
+    // ==========================================================
+
+    private String procesarProveedor4(
+            String trama) {
+
+        try {
+
+            String[] partes =
+                    trama.split(
+                            "\\|",
+                            -1);
 
             if (partes.length != 6) {
+
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
 
@@ -203,18 +314,24 @@ public class SocketServer {
             String tipoServicio =
                     partes[4]
                             .trim()
-                            .toUpperCase(Locale.ROOT);
+                            .toUpperCase(
+                                    Locale.ROOT);
 
             String estado =
                     partes[5]
                             .trim()
-                            .toUpperCase(Locale.ROOT);
+                            .toUpperCase(
+                                    Locale.ROOT);
 
             if (valorVacio(telefono)
-                    || valorVacio(identificadorTelefono)
-                    || valorVacio(identificadorTarjeta)
-                    || valorVacio(tipoServicio)
-                    || !Constantes.ESTADO_DISPONIBLE.equals(estado)) {
+                    || valorVacio(
+                            identificadorTelefono)
+                    || valorVacio(
+                            identificadorTarjeta)
+                    || valorVacio(
+                            tipoServicio)
+                    || !Constantes.ESTADO_DISPONIBLE
+                            .equals(estado)) {
 
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
@@ -241,14 +358,18 @@ public class SocketServer {
     // PROVEEDOR5 - ACTIVAR / DESACTIVAR LINEA
     // ==========================================================
 
-    private String procesarProveedor5(String trama) {
+    private String procesarProveedor5(
+            String trama) {
 
         try {
 
             String[] partes =
-                    trama.split("\\|", -1);
+                    trama.split(
+                            "\\|",
+                            -1);
 
             if (partes.length != 7) {
+
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
 
@@ -267,7 +388,8 @@ public class SocketServer {
             String tipoServicio =
                     partes[4]
                             .trim()
-                            .toUpperCase(Locale.ROOT);
+                            .toUpperCase(
+                                    Locale.ROOT);
 
             String identificacionCliente =
                     partes[5].trim();
@@ -275,20 +397,26 @@ public class SocketServer {
             String estado =
                     partes[6]
                             .trim()
-                            .toUpperCase(Locale.ROOT);
+                            .toUpperCase(
+                                    Locale.ROOT);
 
             if (valorVacio(telefono)
-                    || valorVacio(identificadorTelefono)
-                    || valorVacio(identificadorTarjeta)
+                    || valorVacio(
+                            identificadorTelefono)
+                    || valorVacio(
+                            identificadorTarjeta)
                     || valorVacio(tipoServicio)
-                    || valorVacio(identificacionCliente)
+                    || valorVacio(
+                            identificacionCliente)
                     || valorVacio(estado)) {
 
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
 
-            if (Constantes.ESTADO_ACTIVO.equals(estado)
-                    || "ACTIVAR".equals(estado)) {
+            if (Constantes.ESTADO_ACTIVO.equals(
+                    estado)
+                    || "ACTIVAR".equals(
+                            estado)) {
 
                 return activacionService.activarLinea(
                         telefono,
@@ -299,10 +427,14 @@ public class SocketServer {
                 );
             }
 
-            if (Constantes.ESTADO_INACTIVO.equals(estado)
-                    || "DESACTIVADO".equals(estado)
-                    || "DESACTIVAR".equals(estado)
-                    || Constantes.ESTADO_DISPONIBLE.equals(estado)) {
+            if (Constantes.ESTADO_INACTIVO.equals(
+                    estado)
+                    || "DESACTIVADO".equals(
+                            estado)
+                    || "DESACTIVAR".equals(
+                            estado)
+                    || Constantes.ESTADO_DISPONIBLE.equals(
+                            estado)) {
 
                 return activacionService.desactivarLinea(
                         telefono,
@@ -329,22 +461,23 @@ public class SocketServer {
     // PROVEEDOR6 - CALCULAR FACTURACION
     // ==========================================================
 
-    private String procesarProveedor6(String trama) {
+    private String procesarProveedor6(
+            String trama) {
 
         try {
 
             String[] partes =
-                    trama.split("\\|", -1);
+                    trama.split(
+                            "\\|",
+                            -1);
 
             // --------------------------------------------------
-            // CONSULTAR ULTIMA FECHA DE FACTURACION
-            //
-            // Formato:
-            // PROVEEDOR6|ULTIMA_FECHA
+            // CONSULTAR ULTIMA FECHA
             // --------------------------------------------------
 
             if (partes.length == 2
-                    && "ULTIMA_FECHA".equalsIgnoreCase(
+                    && "ULTIMA_FECHA"
+                    .equalsIgnoreCase(
                             partes[1].trim())) {
 
                 LocalDate ultimaFecha =
@@ -352,6 +485,7 @@ public class SocketServer {
                                 .obtenerUltimaFechaFacturacion();
 
                 if (ultimaFecha == null) {
+
                     return "SIN_FACTURACION";
                 }
 
@@ -360,12 +494,10 @@ public class SocketServer {
 
             // --------------------------------------------------
             // CALCULAR FACTURACION
-            //
-            // Formato:
-            // PROVEEDOR6|2026-07-08|2026-07-18
             // --------------------------------------------------
 
             if (partes.length != 3) {
+
                 return Constantes.RESPUESTA_DATOS_INCOMPLETOS;
             }
 
@@ -398,18 +530,21 @@ public class SocketServer {
     // AUTORIZACION DE LLAMADA
     // ==========================================================
 
-    private String procesarAutorizacionLlamada(String trama) {
+    private String procesarAutorizacionLlamada(
+            String trama) {
 
         int tipoLlamada =
                 TramaParser.obtenerTipoLlamada(
                         trama);
 
         if (tipoLlamada <= 0) {
+
             return Constantes.RESPUESTA_TRAMA_INVALIDA;
         }
 
         return proveedorService.autorizarLlamada(
-                TramaParser.obtenerTelefono(trama),
+                TramaParser.obtenerTelefono(
+                        trama),
                 tipoLlamada);
     }
 
@@ -417,7 +552,8 @@ public class SocketServer {
     // BITACORA
     // ==========================================================
 
-    private String obtenerTipoLog(String trama) {
+    private String obtenerTipoLog(
+            String trama) {
 
         if (trama == null
                 || trama.trim().isEmpty()) {
@@ -425,22 +561,38 @@ public class SocketServer {
             return "trama_vacia";
         }
 
-        if ("PING".equalsIgnoreCase(trama)) {
+        if ("PING".equalsIgnoreCase(
+                trama)) {
+
             return "prueba_conexion";
         }
 
-        if (trama.startsWith("PROVEEDOR4|")) {
+        if (trama.startsWith(
+                Constantes.TIPO_TRANSACCION_RECARGA
+                        + "|")) {
+
+            return "recarga_saldo";
+        }
+
+        if (trama.startsWith(
+                "PROVEEDOR4|")) {
+
             return "proveedor4_ingresar_linea";
         }
 
-        if (trama.startsWith("PROVEEDOR5|")) {
+        if (trama.startsWith(
+                "PROVEEDOR5|")) {
+
             return "proveedor5_activar_desactivar_linea";
         }
 
-        if (trama.startsWith("PROVEEDOR6|")) {
+        if (trama.startsWith(
+                "PROVEEDOR6|")) {
 
-            if (trama.toUpperCase(Locale.ROOT)
-                    .contains("ULTIMA_FECHA")) {
+            if (trama.toUpperCase(
+                    Locale.ROOT)
+                    .contains(
+                            "ULTIMA_FECHA")) {
 
                 return "proveedor6_ultima_fecha_facturacion";
             }
@@ -448,19 +600,27 @@ public class SocketServer {
             return "proveedor6_calcular_facturacion";
         }
 
-        if (!TramaParser.tramaBaseValida(trama)) {
+        if (!TramaParser.tramaBaseValida(
+                trama)) {
+
             return "trama_invalida";
         }
 
-        if (TramaParser.esAutorizacionLlamada(trama)) {
+        if (TramaParser.esAutorizacionLlamada(
+                trama)) {
+
             return "autorizacion_llamada";
         }
 
-        if (TramaParser.esConsultaSaldo(trama)) {
+        if (TramaParser.esConsultaSaldo(
+                trama)) {
+
             return "consulta_saldo";
         }
 
-        if (TramaParser.esRegistroMovimiento(trama)) {
+        if (TramaParser.esRegistroMovimiento(
+                trama)) {
+
             return "registro_movimiento";
         }
 
@@ -471,7 +631,8 @@ public class SocketServer {
     // UTILIDADES
     // ==========================================================
 
-    private boolean valorVacio(String valor) {
+    private boolean valorVacio(
+            String valor) {
 
         return valor == null
                 || valor.trim().isEmpty();
@@ -498,7 +659,8 @@ public class SocketServer {
         }
     }
 
-    private void mostrarInicio(int puerto) {
+    private void mostrarInicio(
+            int puerto) {
 
         System.out.println(
                 "Proveedor iniciado en puerto "

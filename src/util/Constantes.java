@@ -62,6 +62,16 @@ public final class Constantes {
     public static final String TIPO_TRANSACCION_SALDO =
             "2";
 
+    /*
+     * Operación de recarga de saldo para líneas prepago.
+     *
+     * Formato de la trama:
+     *
+     * RECARGA|telefono|monto
+     */
+    public static final String TIPO_TRANSACCION_RECARGA =
+            "RECARGA";
+
     public static final int LONGITUD_TELEFONO =
             8;
 

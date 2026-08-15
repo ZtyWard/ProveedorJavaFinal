@@ -105,10 +105,13 @@ public class ProveedorService {
 
             if (tarifa == null
                     || tarifa.getCostoMinuto() <= 0) {
+
                 return RESPUESTA_ERROR;
             }
 
-            if (TIPO_SERVICIO_POSTPAGO.equals(linea.getTipoServicio())) {
+            if (TIPO_SERVICIO_POSTPAGO.equals(
+                    linea.getTipoServicio())) {
+
                 return RESPUESTA_OK
                         + "|9999999999"
                         + "|245959";
@@ -150,7 +153,8 @@ public class ProveedorService {
     // CONSULTAR SALDO
     // ==========================================================
 
-    public String consultarSaldo(String telefono) {
+    public String consultarSaldo(
+            String telefono) {
 
         try {
 
@@ -162,7 +166,9 @@ public class ProveedorService {
                 return RESPUESTA_ERROR;
             }
 
-            if (TIPO_SERVICIO_POSTPAGO.equals(linea.getTipoServicio())) {
+            if (TIPO_SERVICIO_POSTPAGO.equals(
+                    linea.getTipoServicio())) {
+
                 return RESPUESTA_OK + "|-1";
             }
 
@@ -174,6 +180,147 @@ public class ProveedorService {
                             ANCHO_SALDO);
 
         } catch (SQLException e) {
+
+            return RESPUESTA_ERROR;
+        }
+    }
+
+    // ==========================================================
+    // RECARGAR SALDO - CLIENTE5
+    // ==========================================================
+
+    public String recargarSaldo(
+            String telefono,
+            double monto) {
+
+        try {
+
+            // --------------------------------------------------
+            // Validaciones básicas
+            // --------------------------------------------------
+
+            if (telefono == null
+                    || telefono.trim().isEmpty()
+                    || monto <= 0
+                    || monto != Math.floor(monto)) {
+
+                System.out.println(
+                        "RECARGA RECHAZADA: datos basicos invalidos");
+
+                System.out.println(
+                        "telefono=" + telefono
+                        + " monto=" + monto);
+
+                return RESPUESTA_ERROR;
+            }
+
+            // --------------------------------------------------
+            // Buscar la línea
+            // --------------------------------------------------
+
+            Telefono linea =
+                    telefonoDAO.buscarPorTelefono(
+                            telefono);
+
+            if (linea == null) {
+
+                System.out.println(
+                        "RECARGA RECHAZADA: telefono no existe: "
+                        + telefono);
+
+                return RESPUESTA_ERROR;
+            }
+
+            // --------------------------------------------------
+            // Diagnóstico de la línea encontrada
+            // --------------------------------------------------
+
+            System.out.println(
+                    "RECARGA DEBUG -> "
+                    + "telefono="
+                    + linea.getTelefono()
+                    + " estado="
+                    + linea.getEstado()
+                    + " tipo="
+                    + linea.getTipoServicio()
+                    + " saldo="
+                    + linea.getSaldo()
+                    + " monto="
+                    + monto);
+
+            // --------------------------------------------------
+            // La línea debe estar activa
+            // --------------------------------------------------
+
+            if (!lineaActiva(linea)) {
+
+                System.out.println(
+                        "RECARGA RECHAZADA: "
+                        + "la linea no esta ACTIVA");
+
+                return RESPUESTA_ERROR;
+            }
+
+            // --------------------------------------------------
+            // CLIENTE5 solamente permite líneas PREPAGO
+            // --------------------------------------------------
+
+            if (!TIPO_SERVICIO_PREPAGO.equals(
+                    linea.getTipoServicio())) {
+
+                System.out.println(
+                        "RECARGA RECHAZADA: "
+                        + "la linea no es PREPAGO");
+
+                return RESPUESTA_ERROR;
+            }
+
+            // --------------------------------------------------
+            // Calcular nuevo saldo
+            // --------------------------------------------------
+
+            double nuevoSaldo =
+                    linea.getSaldo() + monto;
+
+            System.out.println(
+                    "RECARGA DEBUG -> "
+                    + "saldo anterior="
+                    + linea.getSaldo()
+                    + " monto="
+                    + monto
+                    + " nuevo saldo="
+                    + nuevoSaldo);
+
+            // --------------------------------------------------
+            // Guardar nuevo saldo en SQL Server
+            // --------------------------------------------------
+
+            telefonoDAO.actualizarSaldo(
+                    telefono,
+                    nuevoSaldo);
+
+            System.out.println(
+                    "RECARGA OK -> "
+                    + "nuevo saldo="
+                    + nuevoSaldo);
+
+            return RESPUESTA_OK;
+
+        } catch (SQLException e) {
+
+            System.out.println(
+                    "Error SQL al recargar saldo:");
+
+            e.printStackTrace();
+
+            return RESPUESTA_ERROR;
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Error inesperado al recargar saldo:");
+
+            e.printStackTrace();
 
             return RESPUESTA_ERROR;
         }
@@ -195,7 +342,8 @@ public class ProveedorService {
 
             if (!lineaActiva(linea)
                     || detalle == null
-                    || detalle.length() < LONGITUD_MINIMA_DETALLE_MOVIMIENTO) {
+                    || detalle.length()
+                    < LONGITUD_MINIMA_DETALLE_MOVIMIENTO) {
 
                 return RESPUESTA_ERROR;
             }
@@ -214,7 +362,9 @@ public class ProveedorService {
                     movimiento,
                     tipoTarifa);
 
-            if (TIPO_SERVICIO_PREPAGO.equals(linea.getTipoServicio())) {
+            if (TIPO_SERVICIO_PREPAGO.equals(
+                    linea.getTipoServicio())) {
+
                 descontarSaldo(
                         linea,
                         movimiento.getCosto());
@@ -232,10 +382,12 @@ public class ProveedorService {
     // REGLAS DE NEGOCIO
     // ==========================================================
 
-    private boolean lineaActiva(Telefono linea) {
+    private boolean lineaActiva(
+            Telefono linea) {
 
         return linea != null
-                && ESTADO_ACTIVO.equals(linea.getEstado());
+                && ESTADO_ACTIVO.equals(
+                        linea.getEstado());
     }
 
     private int calcularTiempoAutorizado(
@@ -243,14 +395,20 @@ public class ProveedorService {
             BigDecimal costoMinuto) {
 
         return saldo
-                .divide(costoMinuto, 0, RoundingMode.DOWN)
-                .multiply(BigDecimal.valueOf(SEGUNDOS_POR_MINUTO))
+                .divide(
+                        costoMinuto,
+                        0,
+                        RoundingMode.DOWN)
+                .multiply(
+                        BigDecimal.valueOf(
+                                SEGUNDOS_POR_MINUTO))
                 .intValue();
     }
 
     private void descontarSaldo(
             Telefono linea,
-            double costo) throws SQLException {
+            double costo)
+            throws SQLException {
 
         double nuevoSaldo =
                 Math.max(
@@ -262,7 +420,8 @@ public class ProveedorService {
                 nuevoSaldo);
     }
 
-    private String obtenerTipoTarifa(int tipoLlamada) {
+    private String obtenerTipoTarifa(
+            int tipoLlamada) {
 
         if (tipoLlamada == 1) {
             return TARIFA_MISMO_PROVEEDOR;
@@ -281,14 +440,19 @@ public class ProveedorService {
 
     private String determinarTipoTarifaMovimiento(
             String telefonoOrigen,
-            String telefonoDestino) throws SQLException {
+            String telefonoDestino)
+            throws SQLException {
 
-        if (esNumeroInternacional(telefonoDestino)) {
+        if (esNumeroInternacional(
+                telefonoDestino)) {
+
             return TARIFA_INTERNACIONAL;
         }
 
-        if (telefonoDAO.existeTelefono(telefonoDestino)
-                && !telefonoOrigen.equals(telefonoDestino)) {
+        if (telefonoDAO.existeTelefono(
+                telefonoDestino)
+                && !telefonoOrigen.equals(
+                        telefonoDestino)) {
 
             return TARIFA_MISMO_PROVEEDOR;
         }
@@ -296,11 +460,14 @@ public class ProveedorService {
         return TARIFA_OTRO_PROVEEDOR;
     }
 
-    private boolean esNumeroInternacional(String telefonoDestino) {
+    private boolean esNumeroInternacional(
+            String telefonoDestino) {
 
         return telefonoDestino != null
-                && (telefonoDestino.startsWith("00")
-                || telefonoDestino.startsWith("+"));
+                && (
+                    telefonoDestino.startsWith("00")
+                    || telefonoDestino.startsWith("+")
+                );
     }
 
     // ==========================================================
@@ -312,10 +479,14 @@ public class ProveedorService {
             String detalle) {
 
         String fecha =
-                detalle.substring(0, 8);
+                detalle.substring(
+                        0,
+                        8);
 
         String hora =
-                detalle.substring(8, 14);
+                detalle.substring(
+                        8,
+                        14);
 
         String destino =
                 detalle.substring(
@@ -332,25 +503,37 @@ public class ProveedorService {
                         detalle.length() - 6);
 
         BigDecimal costo =
-                new BigDecimal(costoTexto)
+                new BigDecimal(
+                        costoTexto)
                         .divide(
-                                BigDecimal.valueOf(100),
+                                BigDecimal.valueOf(
+                                        100),
                                 2,
                                 RoundingMode.HALF_UP);
 
         LocalDateTime fechaLlamada =
                 LocalDateTime.parse(
                         fecha + hora,
-                        DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+                        DateTimeFormatter.ofPattern(
+                                "yyyyMMddHHmmss"));
 
         Movimiento movimiento =
                 new Movimiento();
 
-        movimiento.setTelefono(telefono);
-        movimiento.setFechaLlamada(fechaLlamada);
-        movimiento.setTelefonoDestino(destino);
-        movimiento.setCosto(costo.doubleValue());
-        movimiento.setDuracion(duracion);
+        movimiento.setTelefono(
+                telefono);
+
+        movimiento.setFechaLlamada(
+                fechaLlamada);
+
+        movimiento.setTelefonoDestino(
+                destino);
+
+        movimiento.setCosto(
+                costo.doubleValue());
+
+        movimiento.setDuracion(
+                duracion);
 
         return movimiento;
     }
@@ -364,15 +547,21 @@ public class ProveedorService {
             int ancho) {
 
         BigDecimal centavos =
-                valor.multiply(BigDecimal.valueOf(100))
-                        .setScale(0, RoundingMode.HALF_UP);
+                valor
+                        .multiply(
+                                BigDecimal.valueOf(
+                                        100))
+                        .setScale(
+                                0,
+                                RoundingMode.HALF_UP);
 
         return String.format(
                 "%0" + ancho + "d",
                 centavos.longValue());
     }
 
-    private String formatoTiempo(int segundos) {
+    private String formatoTiempo(
+            int segundos) {
 
         int segundosControlados =
                 Math.max(
@@ -385,7 +574,8 @@ public class ProveedorService {
                 segundosControlados / 3600;
 
         int minutos =
-                (segundosControlados % 3600) / 60;
+                (segundosControlados % 3600)
+                        / 60;
 
         int segundosRestantes =
                 segundosControlados % 60;
